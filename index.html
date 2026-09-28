@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The page is light-only by design: "only light" also opts out of browsers' automatic dark rendering. -->
+  <meta name="color-scheme" content="only light">
+  <meta name="theme-color" content="#f2f8ef">
+
+  <title>PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?</title>
+  <meta name="description" content="PlaylistEval builds video-language judge benchmarks over 100-hour playlist collections without human annotation. On its 630 preference pairs, the best of 17 judges reaches 75.4% pairwise accuracy, against 93.0% human agreement.">
+  <link rel="canonical" href="https://playlisteval.github.io/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://playlisteval.github.io/">
+  <meta property="og:title" content="PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?">
+  <meta property="og:description" content="An agentic framework that builds video-language judge benchmarks over 100-hour playlists without human annotation. The best of 17 judges reaches 75.4% vs. 93.0% for humans.">
+  <meta property="og:image" content="https://playlisteval.github.io/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?">
+  <meta name="twitter:description" content="Video-language judges over 100-hour playlists: the best of 17 judges reaches 75.4% vs. 93.0% for humans.">
+  <meta name="twitter:image" content="https://playlisteval.github.io/assets/img/og.jpg">
+
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/main.js" defer></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?",
+    "author": [
+      {"@type": "Person", "name": "Shayekh Bin Islam", "affiliation": "KAIST"},
+      {"@type": "Person", "name": "Hwanjun Song", "affiliation": "KAIST"}
+    ],
+    "url": "https://playlisteval.github.io/",
+    "image": "https://playlisteval.github.io/assets/img/og.jpg"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Icon sprite: modality marks used in the results table, plus button icons. -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 5v14M17 5v14M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9h10M7 12.5h10M7 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M3 12h1.5M6.5 9v6M10 5v14M13.5 8v8M17 10v4M20.5 12h.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="i-paper" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-data" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 5.5v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V5.5M4.5 12v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V12" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9.5 7H6a2 2 0 0 0-2 2v3.5h5.5V18M20 7h-3.5a2 2 0 0 0-2 2v3.5H20V18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4.8-4.8M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top" aria-label="PlaylistEval, back to top">
+      <img src="assets/img/favicon.svg" alt="" width="26" height="26">
+      <span>PlaylistEval</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#abstract">Abstract</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#results">Results</a>
+      <a href="#citation">Citation</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ Hero ============ -->
+  <section class="hero" id="top">
+    <div class="wrap hero-inner">
+      <p class="hero-tag">Preprint</p>
+      <h1 class="hero-title">
+        <span class="hero-name">PlaylistEval<span class="visually-hidden">:</span></span>
+        <span class="hero-question">Can Video-Language Judges Be Trusted at Day&nbsp;Scale and&nbsp;Beyond?</span>
+      </h1>
+
+      <p class="authors">
+        <span class="author">Shayekh Bin Islam</span>
+        <span class="author">Hwanjun Song<sup aria-hidden="true">*</sup><span class="visually-hidden"> (corresponding author)</span></span>
+      </p>
+      <p class="affil">KAIST <span class="affil-note"><sup aria-hidden="true">*</sup>Corresponding author</span></p>
+
+      <!-- Links: replace href="#" with the real URL. Any button still pointing at "#" renders as "soon". -->
+      <div class="links">
+        <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-paper"/></svg><span>Paper</span></a>
+        <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-code"/></svg><span>Code</span></a>
+        <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-data"/></svg><span>Dataset</span></a>
+        <a class="btn btn-quiet" href="#citation"><svg aria-hidden="true"><use href="#i-quote"/></svg><span>BibTeX</span></a>
+      </div>
+
+      <dl class="hero-stats">
+        <div><dt>hours of playlist video</dt><dd>700</dd></div>
+        <div><dt>domains, ~100&nbsp;h each</dt><dd>7</dd></div>
+        <div><dt>preference pairs</dt><dd>630</dd></div>
+        <div><dt>judges evaluated</dt><dd>17</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============ Figure 1: an example item ============ -->
+  <section class="section section-tight" id="overview" aria-labelledby="fig1-label">
+    <div class="wrap">
+      <figure class="figure">
+        <a class="figure-media" href="assets/img/figures/example-2400.webp" data-zoom aria-label="Open Figure 1 at full size">
+          <img src="assets/img/figures/example-1200.webp"
+               srcset="assets/img/figures/example-1200.webp 1200w, assets/img/figures/example-2400.webp 2400w"
+               sizes="(min-width: 1200px) 1100px, 94vw"
+               width="1200" height="766"
+               alt="An example PlaylistEval item. Top: two 30-minute segments from a 100-hour Documentary playlist, one about the Pacific Northwest showing Portland's White Stag sign, one about Washington showing Tacoma's clock tower. Middle: a two-segment question that describes both landmarks only by their surroundings, and the gold answer with excerpts from each segment. Bottom: four graded wrong answers, rated 4 to 1, each injecting more visual errors, with causal-record tags and the verdicts of three judges.">
+          <span class="zoom-hint" aria-hidden="true"><svg><use href="#i-zoom"/></svg>Zoom</span>
+        </a>
+        <figcaption>
+          <span class="fig-label" id="fig1-label">Figure 1</span>
+          <strong>An item in PlaylistEval.</strong>
+          Two 30-minute segments of a 100-hour Documentary playlist, paired by embedding similarity, each supply one of the question&rsquo;s two entities. The question names neither entity and identifies each only by its surroundings, so its evidence must be found across the collection and confirmed by what is seen and heard. From the gold answer, four wrong answers are derived by injecting visual errors of graded severity (rating 4 to 1), invisible in the transcript. Any two answers form a pair, so the rating gap sets how hard each pair is.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ Abstract ============ -->
+  <section class="section washed" id="abstract" aria-labelledby="abstract-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker"><span>01</span>The paper in brief</p>
+        <h2 id="abstract-title">Abstract</h2>
+      </header>
+      <div class="prose abstract">
+        <p>Video-language models are increasingly used as judges of video understanding, both for evaluating model outputs and for training reward models. Whether their judgments remain reliable when the evidence is buried in day-long videos has yet to be established. Existing benchmarks cannot answer this. Their videos are typically only a few minutes long, many answer pairs can be separated from the transcript alone, and collecting human judgments does not scale to ultra-long videos. We introduce PlaylistEval, an agentic framework that builds video-language judge benchmarks over 100-hour playlist collection without human annotation. It automatically generates questions with paired answers whose differences are controlled by causal degradation, so that every pair demands retrieval across the collection. The resulting benchmark contains <strong>630 pairs</strong> across seven domains spanning both static and dynamic knowledge, and on a stratified subset of 152 pairs it agrees with human judgments <strong>93.0%</strong> of the time (IAA 0.781). Evaluating 17 omnimodal and multimodal models from eight families reveals that frontier judges reach only <strong>75.4%</strong> pairwise accuracy, while open-source judge models perform far behind. We further show that both retrieval and final judgment depend on using multiple modalities, and that judge accuracy degrades as the playlist set grows. We release our pipeline, benchmark, and evaluation code at <a href="https://playlisteval.github.io">playlisteval.github.io</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Figure 2: pipeline ============ -->
+  <section class="section" id="pipeline" aria-labelledby="pipeline-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker"><span>02</span>How the benchmark is built</p>
+        <h2 id="pipeline-title">Pipeline</h2>
+      </header>
+      <figure class="figure">
+        <a class="figure-media" href="assets/img/figures/pipeline-2400.webp" data-zoom aria-label="Open Figure 2 at full size">
+          <img src="assets/img/figures/pipeline-1200.webp"
+               srcset="assets/img/figures/pipeline-1200.webp 1200w, assets/img/figures/pipeline-2400.webp 2400w"
+               sizes="(min-width: 1200px) 1100px, 94vw"
+               width="1200" height="780" loading="lazy"
+               alt="The PlaylistEval pipeline. A: playlists from 7 domains are cut into 30-minute chunks and paired by embedding similarity. Phase 1: B synthesizes a question and answer, which pass structural, video-necessity and visual-evidence gates (C). Phase 2: D synthesizes graded distractors, which pass structural, parametric-detectability and grounding gates. E: a feedback loop returns every rejection reason to its generator. F: a difficulty gate drops pairs that two small VLMs both answer correctly. G: judge meta-evaluation over 630 preference pairs with pairwise accuracy.">
+          <span class="zoom-hint" aria-hidden="true"><svg><use href="#i-zoom"/></svg>Zoom</span>
+        </a>
+        <figcaption>
+          <span class="fig-label">Figure 2</span>
+          <strong>Overview of PlaylistEval.</strong>
+          <span class="step">A</span> From indexed and paired playlist segments, <span class="step">B</span> Phase&nbsp;I generates a QA and <span class="step">C</span> verifies it through three gates, <span class="step">D</span> Phase&nbsp;II generates graded distractors and verifies them likewise, and <span class="step">E</span> the feedback loop returns every rejection to its generator. <span class="step">F</span> Surviving items pass a difficulty gate and <span class="step">G</span> form the preference pairs for judge meta-evaluation.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ Main results ============ -->
+  <section class="section washed" id="results" aria-labelledby="results-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker"><span>03</span>Main results</p>
+        <h2 id="results-title">Judges fall far short of humans</h2>
+        <p class="section-lead">Pairwise accuracy of 17 judges on the 630 pairs of PlaylistBench. Each pair is judged from 128 frames drawn from the question&rsquo;s ~100-hour domain, either <em>retrieved</em> (top-64 of its 30-second chunks by similarity to the question) or sampled <em>uniformly</em> without looking at the question. Chance is 50%.</p>
+      </header>
+
+      <ul class="kpis">
+        <li class="kpi">
+          <span class="kpi-value">75.4%</span>
+          <span class="kpi-label">Best judge, Gemini-3.7-Flash with retrieved evidence</span>
+        </li>
+        <li class="kpi">
+          <span class="kpi-value">93.0%</span>
+          <span class="kpi-label">Human agreement with the intended preference</span>
+        </li>
+        <li class="kpi">
+          <span class="kpi-value">+10.5<small>&nbsp;pts</small></span>
+          <span class="kpi-label">Largest gain from retrieval, Gemma-4-26B-A4B</span>
+        </li>
+        <li class="kpi">
+          <span class="kpi-value">47.8&ndash;52.7%</span>
+          <span class="kpi-label">Judges fine-tuned on short video: no better than chance</span>
+        </li>
+      </ul>
+
+      <div class="controls" role="group" aria-label="Results view options">
+        <div class="seg" role="group" aria-label="View">
+          <span class="seg-label" aria-hidden="true">View</span>
+          <button type="button" data-view="board" aria-pressed="true">Leaderboard</button>
+          <button type="button" data-view="domain" aria-pressed="false">By domain</button>
+        </div>
+        <div class="seg" role="group" aria-label="Sort judges by">
+          <span class="seg-label" aria-hidden="true">Sort</span>
+          <button type="button" data-sort="ret" aria-pressed="true">Retrieved</button>
+          <button type="button" data-sort="uni" aria-pressed="false">Uniform</button>
+          <button type="button" data-sort="delta" aria-pressed="false">Gain</button>
+        </div>
+        <div class="seg" role="group" aria-label="Evidence shown in the domain table" data-only="domain" hidden>
+          <span class="seg-label" aria-hidden="true">Evidence</span>
+          <button type="button" data-evidence="ret" aria-pressed="true">Retrieved</button>
+          <button type="button" data-evidence="uni" aria-pressed="false">Uniform</button>
+        </div>
+        <label class="check">
+          <input type="checkbox" id="group-toggle" checked>
+          <span>Group by model type</span>
+        </label>
+      </div>
+
+      <!-- Leaderboard: one row per judge, with a uniform -> retrieved dumbbell on a shared accuracy axis. -->
+      <div class="panel" id="panel-board">
+        <div class="board-legend" aria-hidden="true">
+          <span class="lg"><i class="lg-dot lg-ret"></i>Retrieved frames</span>
+          <span class="lg"><i class="lg-dot lg-uni"></i>Uniform sampling</span>
+          <span class="lg"><i class="lg-line lg-human"></i>Human agreement (93.0%)</span>
+          <span class="lg"><i class="lg-line lg-chance"></i>Chance (50%)</span>
+        </div>
+        <div class="board" id="board" role="table" aria-label="Pairwise accuracy of each judge with retrieved versus uniformly sampled frames" aria-rowcount="18">
+          <div class="board-head" role="rowgroup">
+            <div class="brow brow-head" role="row">
+              <div class="bc bc-name" role="columnheader">Judge</div>
+              <div class="bc bc-input" role="columnheader">Input</div>
+              <div class="bc bc-track" role="columnheader"><span class="visually-hidden">Accuracy chart</span><div class="axis" id="axis" aria-hidden="true"></div></div>
+              <div class="bc bc-num" role="columnheader" id="h-ret"><span class="lbl-long">Retrieved</span><span class="lbl-short" aria-hidden="true">Ret.</span></div>
+              <div class="bc bc-num" role="columnheader" id="h-uni"><span class="lbl-long">Uniform</span><span class="lbl-short" aria-hidden="true">Uni.</span></div>
+              <div class="bc bc-num" role="columnheader" id="h-delta">Gain</div>
+            </div>
+          </div>
+          <div class="board-body" id="board-body" role="rowgroup"></div>
+        </div>
+        <noscript><p class="noscript">This table needs JavaScript. The same numbers are in Table&nbsp;1 of the paper.</p></noscript>
+        <div class="tooltip" id="tooltip" role="presentation" hidden></div>
+      </div>
+
+      <!-- Per-domain heatmap (Table 1 of the paper). -->
+      <div class="panel" id="panel-domain" hidden>
+        <div class="heat-legend" aria-hidden="true">
+          <span class="heat-legend-title" id="heat-legend-title">Retrieved accuracy (%)</span>
+          <span class="heat-scale" id="heat-scale"></span>
+          <span class="heat-best"><b>Bold</b> = best in column</span>
+        </div>
+        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="heat-caption">
+          <table class="heat" id="heat">
+            <caption id="heat-caption" class="visually-hidden">Judge accuracy (%) per content domain and overall</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="heat-name">Judge</th>
+                <th scope="col">Education</th>
+                <th scope="col">Drama</th>
+                <th scope="col">Life</th>
+                <th scope="col">Art</th>
+                <th scope="col">History</th>
+                <th scope="col">Documentary</th>
+                <th scope="col">Podcast</th>
+                <th scope="col" class="heat-overall">Overall</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+      </div>
+
+      <p class="table-notes">
+        Input: <span class="mod"><svg aria-hidden="true"><use href="#i-video"/></svg>video frames</span>,
+        <span class="mod"><svg aria-hidden="true"><use href="#i-text"/></svg>transcript</span>,
+        <span class="mod"><svg aria-hidden="true"><use href="#i-audio"/></svg>audio track</span>.
+        Gain is retrieved minus uniform, in points. Kimi-K2.6 is 1T-A32B and Qwen-3.8-Max is 2.4T-A95B.
+        The retriever is Qwen3-VL-Embedding-8B over video and transcript.
+      </p>
+
+      <div class="takeaways">
+        <article class="takeaway">
+          <p class="takeaway-n">01</p>
+          <h3>Even the strongest judges fall far short of humans</h3>
+          <p>The best judge, Gemini-3.7-Flash, reaches only 75.4% with retrieved evidence, against 93.0% human agreement. The other hosted judges cluster below it, from Qwen-3.8-Max (73.9%), GPT-5.6-Terra (72.5%) and Kimi-K2.6 (71.4%) down to Gemini-3.5-Flash-Lite (59.5%).</p>
+        </article>
+        <article class="takeaway">
+          <p class="takeaway-n">02</p>
+          <h3>Smaller and open-weight judges approach chance</h3>
+          <p>Only Gemma-4-26B-A4B (59.7%) rises clearly above the 50% floor; the other open-weight general-purpose models fall between 44 and 57%. Accuracy broadly tracks scale, with the largest member of each family ahead of its smaller variants.</p>
+        </article>
+        <article class="takeaway">
+          <p class="takeaway-n">03</p>
+          <h3>Short-video reward models do not transfer</h3>
+          <p>InternLM-XComposer-2.5-Reward and VideoJudge-3B/7B, all trained for video preference tasks, score 47.8&ndash;52.7%. Retrieval leaves them unchanged or slightly worse (&minus;1.6 points for InternLM-XComposer-2.5-Reward).</p>
+        </article>
+        <article class="takeaway">
+          <p class="takeaway-n">04</p>
+          <h3>Retrieval helps, but only judges that can use it</h3>
+          <p>Retrieved frames beat uniform sampling for nearly every capable judge, by up to +10.5 points for Gemma-4-26B-A4B and +4.4 for Gemini-3.7-Flash. The right evidence is necessary but not sufficient: it raises accuracy only when the judge can reason over it.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Citation ============ -->
+  <section class="section" id="citation" aria-labelledby="citation-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker"><span>04</span>Cite this work</p>
+        <h2 id="citation-title">BibTeX</h2>
+      </header>
+      <div class="cite">
+        <button type="button" class="cite-copy" data-copy="bibtex">
+          <svg aria-hidden="true"><use href="#i-copy"/></svg><span class="cite-copy-label">Copy</span>
+        </button>
+        <pre id="bibtex"><code>@misc{islam2026playlisteval,
+  title  = {PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?},
+  author = {Islam, Shayekh Bin and Song, Hwanjun},
+  year   = {2026},
+  url    = {https://playlisteval.github.io}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Acknowledgements ============ -->
+  <section class="section washed section-last" id="acknowledgements" aria-labelledby="ack-title">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker"><span>05</span>Thanks</p>
+        <h2 id="ack-title">Acknowledgements</h2>
+      </header>
+      <div class="prose ack">
+        <p>This work was supported by Institute of Information &amp; communications Technology Planning &amp; Evaluation (IITP) grant funded by the Korea government (MSIT) (No. RS-2024-00445087 &amp; RS-2025-25464461) and National IT Industry Promotion Agency (NIPA) grant funded by the Korea government (MSIT) (No. RS-2026-25621604).</p>
+        <p class="ack-meta">The design of this page is adapted from the <a href="https://haoz19.github.io/world-tracing-page/" target="_blank" rel="noopener">World Tracing project page</a> by World Labs. Model logos are trademarks of their respective owners.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>&copy; 2026 PlaylistEval authors &middot; KAIST</span>
+    <a href="#top">Back to top &uarr;</a>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Figure at full size">
+  <form method="dialog" class="lightbox-bar">
+    <button type="submit" class="lightbox-close" aria-label="Close">&times;</button>
+  </form>
+  <div class="lightbox-body"><img id="lightbox-img" alt=""></div>
+</dialog>
+
+</body>
+</html>
