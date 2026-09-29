@@ -31,6 +31,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="assets/js/main.js" defer></script>
+  <!-- Without JavaScript, hide the results controls that would do nothing, and keep placeholder links inert. -->
+  <noscript><style>.controls, #panel-board .board-legend, #board { display: none; } .btn[href="#"] { pointer-events: none; }</style></noscript>
 
   <script type="application/ld+json">
   {
@@ -57,7 +59,7 @@
   <symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-data" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 5.5v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V5.5M4.5 12v6.5c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V12" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
   <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9.5 7H6a2 2 0 0 0-2 2v3.5h5.5V18M20 7h-3.5a2 2 0 0 0-2 2v3.5H20V18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M15.5 4.5H18a1.5 1.5 0 0 1 1.5 1.5v13.5A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 6 4.5h2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.5" y="3" width="7" height="3.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 12h7M8.5 15.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m20 20-4.8-4.8M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -98,7 +100,7 @@
 
       <!-- Links: replace href="#" with the real URL. Any button still pointing at "#" renders as "soon". -->
       <div class="links">
-        <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-paper"/></svg><span>Paper</span></a>
+        <a class="btn" href="https://arxiv.org/abs/2609.34314" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-paper"/></svg><span>Paper</span></a>
         <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-code"/></svg><span>Code</span></a>
         <a class="btn" href="#"><svg aria-hidden="true"><use href="#i-data"/></svg><span>Dataset</span></a>
         <a class="btn btn-quiet" href="#citation"><svg aria-hidden="true"><use href="#i-quote"/></svg><span>BibTeX</span></a>
@@ -117,12 +119,13 @@
   <section class="section section-tight" id="overview" aria-labelledby="fig1-label">
     <div class="wrap">
       <figure class="figure">
-        <a class="figure-media" href="assets/img/figures/example-2400.webp" data-zoom aria-label="Open Figure 1 at full size">
+        <a class="figure-media" href="assets/img/figures/example-2400.webp" data-zoom>
+          <span class="visually-hidden">Open Figure 1 at full size: </span>
           <img src="assets/img/figures/example-1200.webp"
                srcset="assets/img/figures/example-1200.webp 1200w, assets/img/figures/example-2400.webp 2400w"
                sizes="(min-width: 1200px) 1100px, 94vw"
                width="1200" height="766"
-               alt="An example PlaylistEval item. Top: two 30-minute segments from a 100-hour Documentary playlist, one about the Pacific Northwest showing Portland's White Stag sign, one about Washington showing Tacoma's clock tower. Middle: a two-segment question that describes both landmarks only by their surroundings, and the gold answer with excerpts from each segment. Bottom: four graded wrong answers, rated 4 to 1, each injecting more visual errors, with causal-record tags and the verdicts of three judges.">
+               alt="An example PlaylistEval item. Top: two 30-minute segments from a 100-hour Documentary playlist, one about the Pacific Northwest showing Portland's White Stag sign, one about Washington showing Tacoma's clock tower. Middle: a two-segment question that describes both landmarks only by their surroundings, and the gold answer with excerpts from each segment. Bottom: four graded wrong answers, rated 4 to 1, each injecting more visual errors, with causal-record tags. A final strip gives, for the pairs 3 vs 2 and 2 vs 1, the verdicts of GPT, Gemini, Qwen and the human annotators; all pick the higher-rated answer except GPT on 2 vs 1.">
           <span class="zoom-hint" aria-hidden="true"><svg><use href="#i-zoom"/></svg>Zoom</span>
         </a>
         <figcaption>
@@ -155,18 +158,19 @@
         <h2 id="pipeline-title">Pipeline</h2>
       </header>
       <figure class="figure">
-        <a class="figure-media" href="assets/img/figures/pipeline-2400.webp" data-zoom aria-label="Open Figure 2 at full size">
+        <a class="figure-media" href="assets/img/figures/pipeline-2400.webp" data-zoom>
+          <span class="visually-hidden">Open Figure 2 at full size: </span>
           <img src="assets/img/figures/pipeline-1200.webp"
                srcset="assets/img/figures/pipeline-1200.webp 1200w, assets/img/figures/pipeline-2400.webp 2400w"
                sizes="(min-width: 1200px) 1100px, 94vw"
                width="1200" height="780" loading="lazy"
-               alt="The PlaylistEval pipeline. A: playlists from 7 domains are cut into 30-minute chunks and paired by embedding similarity. Phase 1: B synthesizes a question and answer, which pass structural, video-necessity and visual-evidence gates (C). Phase 2: D synthesizes graded distractors, which pass structural, parametric-detectability and grounding gates. E: a feedback loop returns every rejection reason to its generator. F: a difficulty gate drops pairs that two small VLMs both answer correctly. G: judge meta-evaluation over 630 preference pairs with pairwise accuracy.">
+               alt="The PlaylistEval pipeline. A: playlists from 7 domains are split into segments of up to 30 minutes, and similar segments from the same playlist are paired by embedding similarity. Phase 1: B synthesizes a question and answer, which pass structural, video-necessity and visual-evidence gates (C). Phase 2: D synthesizes graded distractors, which pass structural, parametric-detectability and grounding gates. E: a feedback loop returns every rejection reason to its generator. F: a difficulty gate drops pairs that two small VLMs both answer correctly. G: judge meta-evaluation over 630 preference pairs with pairwise accuracy.">
           <span class="zoom-hint" aria-hidden="true"><svg><use href="#i-zoom"/></svg>Zoom</span>
         </a>
         <figcaption>
           <span class="fig-label">Figure 2</span>
           <strong>Overview of PlaylistEval.</strong>
-          <span class="step">A</span> From indexed and paired playlist segments, <span class="step">B</span> Phase&nbsp;I generates a QA and <span class="step">C</span> verifies it through three gates, <span class="step">D</span> Phase&nbsp;II generates graded distractors and verifies them likewise, and <span class="step">E</span> the feedback loop returns every rejection to its generator. <span class="step">F</span> Surviving items pass a difficulty gate and <span class="step">G</span> form the preference pairs for judge meta-evaluation.
+          <span class="nowrap"><span class="step">A</span> From</span> indexed and paired playlist segments, <span class="nowrap"><span class="step">B</span> Phase&nbsp;I</span> generates a QA and <span class="nowrap"><span class="step">C</span> verifies</span> it through three gates, <span class="nowrap"><span class="step">D</span> Phase&nbsp;II</span> generates graded distractors and verifies them likewise, and <span class="nowrap"><span class="step">E</span> the</span> feedback loop returns every rejection to its generator. <span class="nowrap"><span class="step">F</span> Surviving</span> items pass a difficulty gate and <span class="nowrap"><span class="step">G</span> form</span> the preference pairs for judge meta-evaluation.
         </figcaption>
       </figure>
     </div>
@@ -178,27 +182,8 @@
       <header class="section-head">
         <p class="kicker"><span>03</span>Main results</p>
         <h2 id="results-title">Judges fall far short of humans</h2>
-        <p class="section-lead">Pairwise accuracy of 17 judges on the 630 pairs of PlaylistBench. Each pair is judged from 128 frames drawn from the question&rsquo;s ~100-hour domain, either <em>retrieved</em> (top-64 of its 30-second chunks by similarity to the question) or sampled <em>uniformly</em> without looking at the question. Chance is 50%.</p>
+        <p class="section-lead">Pairwise accuracy (%) of 17 judges on the 630 pairs, per content domain and overall, with domain-retrieved frames versus uniform frame sampling. <em>Retrieved</em> frames come from the <span class="nowrap">30-second</span> chunks most similar to the question; <em>uniform</em> frames are spread evenly over the <span class="nowrap">~100-hour</span> domain. Chance is 50%.</p>
       </header>
-
-      <ul class="kpis">
-        <li class="kpi">
-          <span class="kpi-value">75.4%</span>
-          <span class="kpi-label">Best judge, Gemini-3.7-Flash with retrieved evidence</span>
-        </li>
-        <li class="kpi">
-          <span class="kpi-value">93.0%</span>
-          <span class="kpi-label">Human agreement with the intended preference</span>
-        </li>
-        <li class="kpi">
-          <span class="kpi-value">+10.5<small>&nbsp;pts</small></span>
-          <span class="kpi-label">Largest gain from retrieval, Gemma-4-26B-A4B</span>
-        </li>
-        <li class="kpi">
-          <span class="kpi-value">47.8&ndash;52.7%</span>
-          <span class="kpi-label">Judges fine-tuned on short video: no better than chance</span>
-        </li>
-      </ul>
 
       <div class="controls" role="group" aria-label="Results view options">
         <div class="seg" role="group" aria-label="View">
@@ -231,7 +216,7 @@
           <span class="lg"><i class="lg-line lg-human"></i>Human agreement (93.0%)</span>
           <span class="lg"><i class="lg-line lg-chance"></i>Chance (50%)</span>
         </div>
-        <div class="board" id="board" role="table" aria-label="Pairwise accuracy of each judge with retrieved versus uniformly sampled frames" aria-rowcount="18">
+        <div class="board" id="board" role="table" aria-label="Pairwise accuracy of each judge with retrieved versus uniformly sampled frames">
           <div class="board-head" role="rowgroup">
             <div class="brow brow-head" role="row">
               <div class="bc bc-name" role="columnheader">Judge</div>
@@ -244,7 +229,7 @@
           </div>
           <div class="board-body" id="board-body" role="rowgroup"></div>
         </div>
-        <noscript><p class="noscript">This table needs JavaScript. The same numbers are in Table&nbsp;1 of the paper.</p></noscript>
+        <noscript><p class="noscript">Enable JavaScript to view the results table.</p></noscript>
         <div class="tooltip" id="tooltip" role="presentation" hidden></div>
       </div>
 
@@ -255,7 +240,8 @@
           <span class="heat-scale" id="heat-scale"></span>
           <span class="heat-best"><b>Bold</b> = best in column</span>
         </div>
-        <div class="table-scroll" tabindex="0" role="region" aria-labelledby="heat-caption">
+        <div class="table-frame" id="table-frame">
+        <div class="table-scroll" id="table-scroll" tabindex="0" role="region" aria-labelledby="heat-caption">
           <table class="heat" id="heat">
             <caption id="heat-caption" class="visually-hidden">Judge accuracy (%) per content domain and overall</caption>
             <thead>
@@ -273,13 +259,15 @@
             </thead>
           </table>
         </div>
+        </div>
       </div>
 
       <p class="table-notes">
         Input: <span class="mod"><svg aria-hidden="true"><use href="#i-video"/></svg>video frames</span>,
         <span class="mod"><svg aria-hidden="true"><use href="#i-text"/></svg>transcript</span>,
         <span class="mod"><svg aria-hidden="true"><use href="#i-audio"/></svg>audio track</span>.
-        Gain is retrieved minus uniform, in points. Kimi-K2.6 is 1T-A32B and Qwen-3.8-Max is 2.4T-A95B.
+        Gain is retrieved minus uniform, in points, as reported in the paper from unrounded accuracies, so it can differ by 0.1 from the rounded columns.
+        <span class="nowrap">Kimi-K2.6</span> is 1T-A32B and <span class="nowrap">Qwen-3.8-Max</span> is 2.4T-A95B.
         The retriever is Qwen3-VL-Embedding-8B over video and transcript.
       </p>
 
@@ -287,22 +275,22 @@
         <article class="takeaway">
           <p class="takeaway-n">01</p>
           <h3>Even the strongest judges fall far short of humans</h3>
-          <p>The best judge, Gemini-3.7-Flash, reaches only 75.4% with retrieved evidence, against 93.0% human agreement. The other hosted judges cluster below it, from Qwen-3.8-Max (73.9%), GPT-5.6-Terra (72.5%) and Kimi-K2.6 (71.4%) down to Gemini-3.5-Flash-Lite (59.5%).</p>
+          <p>The best judge, <span class="nowrap">Gemini-3.7-Flash</span>, reaches only 75.4% with retrieved evidence, against 93.0% human agreement. The other hosted judges cluster below it, from <span class="nowrap">Qwen-3.8-Max</span> (73.9%), <span class="nowrap">GPT-5.6-Terra</span> (72.5%) and <span class="nowrap">Kimi-K2.6</span> (71.4%) down to <span class="nowrap">Gemini-3.5-Flash-Lite</span> (59.5%).</p>
         </article>
         <article class="takeaway">
           <p class="takeaway-n">02</p>
           <h3>Smaller and open-weight judges approach chance</h3>
-          <p>Only Gemma-4-26B-A4B (59.7%) rises clearly above the 50% floor; the other open-weight general-purpose models fall between 44 and 57%. Accuracy broadly tracks scale, with the largest member of each family ahead of its smaller variants.</p>
+          <p>Only <span class="nowrap">Gemma-4-26B-A4B</span> (59.7%) rises clearly above the 50% floor; the other open-weight general-purpose models fall between 44 and 57%. Accuracy broadly tracks scale, with the largest member of each family ahead of its smaller variants.</p>
         </article>
         <article class="takeaway">
           <p class="takeaway-n">03</p>
           <h3>Short-video reward models do not transfer</h3>
-          <p>InternLM-XComposer-2.5-Reward and VideoJudge-3B/7B, all trained for video preference tasks, score 47.8&ndash;52.7%. Retrieval leaves them unchanged or slightly worse (&minus;1.6 points for InternLM-XComposer-2.5-Reward).</p>
+          <p><span class="nowrap">InternLM-XComposer-2.5-Reward</span> and <span class="nowrap">VideoJudge-3B/7B</span>, all trained for video preference tasks, score <span class="nowrap">47.8&ndash;52.7%</span>. Retrieval leaves them unchanged or slightly worse (&minus;1.6 points for <span class="nowrap">InternLM-XComposer-2.5-Reward</span>).</p>
         </article>
         <article class="takeaway">
           <p class="takeaway-n">04</p>
           <h3>Retrieval helps, but only judges that can use it</h3>
-          <p>Retrieved frames beat uniform sampling for nearly every capable judge, by up to +10.5 points for Gemma-4-26B-A4B and +4.4 for Gemini-3.7-Flash. The right evidence is necessary but not sufficient: it raises accuracy only when the judge can reason over it.</p>
+          <p>Retrieved frames beat uniform sampling for nearly every capable judge, by up to +10.5 points for <span class="nowrap">Gemma-4-26B-A4B</span> and +4.4 for <span class="nowrap">Gemini-3.7-Flash</span>. The right evidence is necessary but not sufficient: it raises accuracy only when the judge can reason over it.</p>
         </article>
       </div>
     </div>
@@ -312,18 +300,23 @@
   <section class="section" id="citation" aria-labelledby="citation-title">
     <div class="wrap">
       <header class="section-head">
-        <p class="kicker"><span>04</span>Cite this work</p>
+        <p class="kicker"><span>04</span>How to cite</p>
         <h2 id="citation-title">BibTeX</h2>
       </header>
-      <div class="cite">
-        <button type="button" class="cite-copy" data-copy="bibtex">
-          <svg aria-hidden="true"><use href="#i-copy"/></svg><span class="cite-copy-label">Copy</span>
+      <div class="bib">
+        <button type="button" class="bib-copy" data-copy-target="bibtex">
+          <svg aria-hidden="true"><use href="#i-clipboard"/></svg><span class="bib-copy-state">Copy</span>
         </button>
-        <pre id="bibtex"><code>@misc{islam2026playlisteval,
-  title  = {PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?},
-  author = {Islam, Shayekh Bin and Song, Hwanjun},
-  year   = {2026},
-  url    = {https://playlisteval.github.io}
+        <span class="visually-hidden" role="status" id="bib-status"></span>
+        <pre id="bibtex"><code>@article{islam2026playlisteval,
+      title={PlaylistEval: Can Video-Language Judges Be Trusted at Day Scale and Beyond?}, 
+      author={Shayekh Bin Islam and Hwanjun Song},
+      year={2026},
+      eprint={2609.34314},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2609.34314}, 
+      journal={arXiv preprint arXiv:2609.34314}, 
 }</code></pre>
       </div>
     </div>
@@ -333,11 +326,11 @@
   <section class="section washed section-last" id="acknowledgements" aria-labelledby="ack-title">
     <div class="wrap">
       <header class="section-head">
-        <p class="kicker"><span>05</span>Thanks</p>
+        <p class="kicker"><span>05</span>Funding &amp; credits</p>
         <h2 id="ack-title">Acknowledgements</h2>
       </header>
       <div class="prose ack">
-        <p>This work was supported by Institute of Information &amp; communications Technology Planning &amp; Evaluation (IITP) grant funded by the Korea government (MSIT) (No. RS-2024-00445087 &amp; RS-2025-25464461) and National IT Industry Promotion Agency (NIPA) grant funded by the Korea government (MSIT) (No. RS-2026-25621604).</p>
+        <p>This work was supported by Institute of Information &amp; communications Technology Planning &amp; Evaluation (IITP) grant funded by the Korea government (MSIT) (<span class="nowrap">No.&nbsp;RS-2024-00445087</span> &amp; <span class="nowrap">RS-2025-25464461</span>) and National IT Industry Promotion Agency (NIPA) grant funded by the Korea government (MSIT) (<span class="nowrap">No.&nbsp;RS-2026-25621604</span>).</p>
         <p class="ack-meta">The design of this page is adapted from the <a href="https://haoz19.github.io/world-tracing-page/" target="_blank" rel="noopener">World Tracing project page</a> by World Labs. Model logos are trademarks of their respective owners.</p>
       </div>
     </div>

@@ -13,17 +13,21 @@ assets/js/main.js          results data (Table 1) and the interactive leaderboar
 assets/img/figures/        Figure 1 and Figure 2 as WebP, 1200 px and 2400 px wide
 assets/img/logos/          model-family logos used in the results table
 assets/img/og.jpg          1200x630 social preview
+assets/img/favicon.svg     site icon (also the top-bar logo)
+assets/img/apple-touch-icon.png  180x180 iOS home-screen icon
 .nojekyll                  serve files as is, without Jekyll
 ```
 
 ## Common edits
 
-- **Paper / Code / Dataset links.** In `index.html`, replace `href="#"` on the button with the real URL.
-  A button that still points at `#` is shown greyed out with a "soon" tag.
+- **Code / Dataset links.** In `index.html`, replace `href="#"` on the button with the real URL.
+  A button that still points at `#` is shown greyed out with a "soon" tag. The Paper button links to
+  arXiv ([2609.34314](https://arxiv.org/abs/2609.34314)).
 - **Results.** Edit the `JUDGES` array at the top of `assets/js/main.js`. Each entry holds the overall
   retrieved / uniform accuracy, the gain as printed in the paper, and per-domain `[retrieved, uniform]` pairs
   in the order Education, Drama, Life, Art, History, Documentary, Podcast.
-- **BibTeX.** Edit the `<pre id="bibtex">` block in `index.html` (for example, once there is an arXiv ID).
+- **BibTeX.** Edit the `<pre id="bibtex">` block in `index.html`. It holds the arXiv entry exactly as the
+  authors provided it; the Copy button copies that text as is.
 
 ## Regenerating the figures
 

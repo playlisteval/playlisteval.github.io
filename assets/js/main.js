@@ -9,11 +9,14 @@
   // ---------------------------------------------------------------------------
   var DOMAINS = ['Education', 'Drama', 'Life', 'Art', 'History', 'Documentary', 'Podcast'];
 
+  // name + qual are rendered as two unbreakable phrases, so a narrow label wraps between them
+  // rather than at a hyphen ("fine-" / "tuned").
   var GROUPS = [
-    { id: 'api', label: 'Hosted API models (general-purpose)', short: 'Hosted API' },
-    { id: 'open', label: 'Open-weight models (general-purpose)', short: 'Open-weight' },
-    { id: 'tuned', label: 'Open-weight models (fine-tuned as judges)', short: 'Fine-tuned judge' }
+    { id: 'api', name: 'Hosted API models', qual: '(general-purpose)', short: 'Hosted API' },
+    { id: 'open', name: 'Open-weight models', qual: '(general-purpose)', short: 'Open-weight' },
+    { id: 'tuned', name: 'Open-weight models', qual: '(fine-tuned as judges)', short: 'Fine-tuned judge' }
   ];
+  GROUPS.forEach(function (g) { g.label = g.name + ' ' + g.qual; });
 
   var MODS = {
     VA: { icons: ['video', 'audio'], label: 'video frames and audio' },
@@ -90,6 +93,13 @@
     return svg;
   }
 
+  function fillGroupLabel(node, g) {
+    node.appendChild(el('span', 'nowrap', g.name));
+    node.appendChild(document.createTextNode(' '));
+    node.appendChild(el('span', 'nowrap', g.qual));
+    return node;
+  }
+
   function pct(v) { return ((v - AXIS_MIN) / (AXIS_MAX - AXIS_MIN)) * 100; }
   function fmt1(v) { return v.toFixed(1); }
   // Signed like the paper, which prints a zero gain as "+0.0".
@@ -112,6 +122,8 @@
     });
   }
 
+  // withNote: show the group under the name (flat view). Otherwise the group is only spoken to screen
+  // readers, since the visible group heading row is decorative.
   function judgeCell(j, withNote) {
     var wrap = el('div', 'judge');
     var img = el('img');
@@ -122,8 +134,12 @@
     img.loading = 'lazy';
     wrap.appendChild(img);
     var name = el('span', 'judge-name', j.name);
-    if (j.ret === BEST_RET) name.appendChild(el('span', 'best-badge', 'Best'));
+    if (j.ret === BEST_RET) {
+      name.appendChild(document.createTextNode(' '));
+      name.appendChild(el('span', 'best-badge', 'Best'));
+    }
     if (withNote) name.appendChild(el('span', 'judge-note', groupOf(j.group).short));
+    else name.appendChild(el('span', 'visually-hidden', ', ' + groupOf(j.group).short));
     wrap.appendChild(name);
     return wrap;
   }
@@ -144,6 +160,10 @@
     var h = el('span', 'ref-label human', 'Human ' + fmt1(HUMAN));
     h.style.left = pct(HUMAN) + '%';
     axis.appendChild(h);
+    // No stub for chance: its line sits exactly on the "50" tick and would strike through it.
+    var stub = el('span', 'ref-stub');
+    stub.style.left = pct(HUMAN) + '%';
+    axis.appendChild(stub);
     var c = el('span', 'ref-label chance', 'Chance');
     c.style.left = pct(CHANCE) + '%';
     axis.appendChild(c);
@@ -224,12 +244,12 @@
     if (!body) return;
     body.textContent = '';
     sections().forEach(function (s) {
+      // Plain wrapper (no role): ARIA doesn't allow a rowgroup inside a rowgroup. Screen readers get the
+      // group from the hidden suffix on each row's name instead of this decorative heading.
       var holder = body;
       if (s.group) {
         holder = el('div', 'board-group');
-        holder.setAttribute('role', 'rowgroup');
-        holder.setAttribute('aria-label', s.group.label);
-        var label = el('div', 'group-row', s.group.label);
+        var label = fillGroupLabel(el('div', 'group-row'), s.group);
         label.setAttribute('aria-hidden', 'true');
         holder.appendChild(label);
         body.appendChild(holder);
@@ -242,7 +262,8 @@
       if (!h) return;
       var on = state.sort === k;
       h.classList.toggle('is-sorted', on);
-      h.setAttribute('aria-sort', on ? 'descending' : 'none');
+      // Grouped rows are sorted within each group only, which is not a plain descending order.
+      h.setAttribute('aria-sort', on ? (state.grouped ? 'other' : 'descending') : 'none');
     });
   }
 
@@ -278,7 +299,9 @@
       var x = e.clientX - box.left + 16;
       var y = e.clientY - box.top + 16;
       var w = tip.offsetWidth;
+      var h = tip.offsetHeight;
       if (x + w > box.width - 8) x = e.clientX - box.left - w - 16;
+      if (e.clientY + 16 + h > window.innerHeight - 8) y = e.clientY - box.top - h - 12;
       tip.style.left = Math.max(8, x) + 'px';
       tip.style.top = y + 'px';
     });
@@ -301,8 +324,19 @@
     if (!scale) return;
     scale.textContent = '';
     BIN_LABELS.forEach(function (label, i) { scale.appendChild(el('span', 'sw h' + i, label)); });
+    var which = state.evidence === 'ret' ? 'Retrieved' : 'Uniform';
     var title = document.getElementById('heat-legend-title');
-    if (title) title.textContent = (state.evidence === 'ret' ? 'Retrieved' : 'Uniform') + ' accuracy (%)';
+    if (title) title.textContent = which + ' accuracy (%)';
+    // The visual legend is aria-hidden, so the caption carries the same information for screen readers.
+    var cap = document.getElementById('heat-caption');
+    if (cap) cap.textContent = which + '-frame accuracy (%) per content domain and overall; the best value in each column is marked.';
+  }
+
+  function heatCell(cls, text, isBest, title) {
+    var td = el('td', cls + (isBest ? ' best' : ''), text);
+    if (isBest) td.appendChild(el('span', 'visually-hidden', ' (best)'));
+    td.title = title;
+    return td;
   }
 
   function renderHeat() {
@@ -322,9 +356,10 @@
       table.appendChild(body);
       if (s.group) {
         var gr = el('tr', 'heat-group');
-        var gh = el('th', null, s.group.label);
+        var gh = el('th');
         gh.colSpan = DOMAINS.length + 2;
         gh.scope = 'rowgroup';
+        gh.appendChild(fillGroupLabel(el('span', 'heat-group-label'), s.group));
         gr.appendChild(gh);
         body.appendChild(gr);
       }
@@ -336,18 +371,24 @@
         tr.appendChild(th);
         j.d.forEach(function (pair, c) {
           var v = pair[k];
-          var td = el('td', 'h' + bin(v) + (v === best[c] ? ' best' : ''), String(v));
-          td.title = j.name + ', ' + DOMAINS[c] + ': ' + v + '% ' + (k === 0 ? 'retrieved' : 'uniform');
-          tr.appendChild(td);
+          tr.appendChild(heatCell('h' + bin(v), String(v), v === best[c],
+            j.name + ', ' + DOMAINS[c] + ': ' + v + '% ' + (k === 0 ? 'retrieved' : 'uniform')));
         });
         var ov = j[state.evidence];
-        var tdo = el('td', 'heat-overall-cell h' + bin(ov) + (ov === bestOverall ? ' best' : ''), fmt1(ov));
-        tdo.title = j.name + ', overall: ' + fmt1(ov) + '%';
-        tr.appendChild(tdo);
+        tr.appendChild(heatCell('heat-overall-cell h' + bin(ov), fmt1(ov), ov === bestOverall,
+          j.name + ', overall: ' + fmt1(ov) + '%'));
         body.appendChild(tr);
       });
     });
     renderHeatLegend();
+  }
+
+  // Fade the table's right edge while columns remain hidden off to the right.
+  function updateTableFade() {
+    var frame = document.getElementById('table-frame');
+    var sc = document.getElementById('table-scroll');
+    if (!frame || !sc) return;
+    frame.classList.toggle('can-scroll', sc.scrollWidth - sc.clientWidth - sc.scrollLeft > 2);
   }
 
   // ---------------------------------------------------------------------------
@@ -370,6 +411,7 @@
     setPressed('evidence', state.evidence);
     renderBoard();
     renderHeat();
+    updateTableFade();
   }
 
   function wireControls() {
@@ -397,46 +439,58 @@
     });
   }
 
-  function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  // Clipboard API where available; if it is missing or refuses, select the <pre> itself and use
+  // execCommand. If that fails too, the text is left selected for a manual copy.
+  function copyFrom(node) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(node.textContent).catch(function () { return selectAndCopy(node); });
+    }
+    return selectAndCopy(node);
+  }
+
+  // Focus is put back where it was, so keyboard users keep their place.
+  function selectAndCopy(node) {
     return new Promise(function (resolve, reject) {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
+      var prev = document.activeElement;
+      var sel = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(node);
+      sel.removeAllRanges();
+      sel.addRange(range);
       var ok = false;
       try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
-      document.body.removeChild(ta);
-      if (ok) { resolve(); } else { reject(new Error('copy failed')); }
+      if (ok) sel.removeAllRanges();
+      if (prev && prev.focus) prev.focus();
+      if (ok) resolve(); else reject(new Error('copy failed'));
     });
   }
 
   function wireCopy() {
-    document.querySelectorAll('[data-copy]').forEach(function (btn) {
-      var src = document.getElementById(btn.getAttribute('data-copy'));
-      var label = btn.querySelector('.cite-copy-label');
+    var status = document.getElementById('bib-status');
+    var isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
+    document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
+      var src = document.getElementById(btn.getAttribute('data-copy-target'));
+      var state = btn.querySelector('.bib-copy-state');
       var timer;
+      function say(buttonText, announcement) {
+        if (state) state.textContent = buttonText;
+        if (status) status.textContent = announcement;
+      }
       btn.addEventListener('click', function () {
         if (!src) return;
-        copyText(src.textContent).then(function () {
-          btn.classList.add('is-copied');
-          if (label) label.textContent = 'Copied';
+        clearTimeout(timer);
+        copyFrom(src).then(function () {
+          btn.classList.add('is-done');
+          say('Copied', 'BibTeX copied to clipboard');
         }, function () {
-          if (label) label.textContent = 'Press Ctrl+C';
-          var range = document.createRange();
-          range.selectNodeContents(src);
-          var sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
+          // Leave the text selected so the reader can copy it by hand.
+          var keys = isMac ? '⌘C' : 'Ctrl+C';
+          say('Press ' + keys, 'Copy failed. The BibTeX is selected; press ' + keys + ' to copy it.');
         }).then(function () {
-          clearTimeout(timer);
           timer = setTimeout(function () {
-            btn.classList.remove('is-copied');
-            if (label) label.textContent = 'Copy';
-          }, 1800);
+            btn.classList.remove('is-done');
+            say('Copy', '');
+          }, 2000);
         });
       });
     });
@@ -454,12 +508,50 @@
         if (!wide.matches) return;
         e.preventDefault();
         var inner = a.querySelector('img');
-        img.src = a.getAttribute('href');
-        img.alt = inner ? inner.alt : '';
+        var full = a.href;
+        if (inner) {
+          // Size the dialog from the figure's aspect ratio and show the already-loaded image at once,
+          // then swap in the full-resolution file when it arrives (unless another figure was opened).
+          dlg.style.setProperty('--ar', String(inner.getAttribute('width') / inner.getAttribute('height')));
+          img.src = inner.currentSrc || inner.src;
+          img.alt = inner.alt;
+        }
+        img.dataset.want = full;
+        var hi = new Image();
+        hi.onload = function () { if (dlg.open && img.dataset.want === full) img.src = full; };
+        hi.src = full;
         dlg.showModal();
       });
     });
     dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+  }
+
+  // Keep a nav link visible when the nav row scrolls (narrow phones). Rect maths rather than
+  // scrollIntoView, which would interrupt the page's own smooth scroll.
+  function revealInNav(a) {
+    var nav = a.parentNode;
+    if (nav.scrollWidth <= nav.clientWidth) return;
+    var ar = a.getBoundingClientRect();
+    var nr = nav.getBoundingClientRect();
+    if (ar.right > nr.right - 18 || ar.left < nr.left) nav.scrollLeft += ar.left - nr.left - (nr.width - ar.width) / 2;
+  }
+
+  // Fade the nav's edge only when its links don't fit: the right edge normally, the left edge once
+  // it is scrolled to the end. Keyboard focus also scrolls the focused link into view.
+  function wireNavOverflow() {
+    var nav = document.querySelector('.nav');
+    if (!nav) return;
+    function edge() { nav.classList.toggle('at-end', nav.scrollLeft >= nav.scrollWidth - nav.clientWidth - 1); }
+    function check() {
+      nav.classList.remove('is-overflowing');
+      if (nav.scrollWidth > nav.clientWidth + 1) nav.classList.add('is-overflowing');
+      edge();
+    }
+    check();
+    nav.addEventListener('scroll', edge, { passive: true });
+    nav.addEventListener('focusin', function (e) { if (e.target.tagName === 'A') revealInNav(e.target); });
+    window.addEventListener('resize', check);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(check);
   }
 
   function wireScrollSpy() {
@@ -467,18 +559,31 @@
     if (!links.length || !('IntersectionObserver' in window)) return;
     var byId = {};
     links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+
     var obs = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
-        links.forEach(function (a) { a.classList.remove('is-active'); });
+        links.forEach(function (a) { a.classList.remove('is-active'); a.removeAttribute('aria-current'); });
+        // The hero and the acknowledgements have no nav link: entering them clears the highlight.
         var a = byId[en.target.id];
-        if (a) a.classList.add('is-active');
+        if (a && getComputedStyle(a).display !== 'none') {
+          a.classList.add('is-active');
+          a.setAttribute('aria-current', 'true');
+          revealInNav(a);
+        }
       });
     }, { rootMargin: '-40% 0px -55% 0px' });
-    Object.keys(byId).forEach(function (id) {
+    Object.keys(byId).concat(['top', 'acknowledgements']).forEach(function (id) {
       var s = document.getElementById(id);
       if (s) obs.observe(s);
     });
+  }
+
+  function wireTableFade() {
+    var sc = document.getElementById('table-scroll');
+    if (!sc) return;
+    sc.addEventListener('scroll', updateTableFade, { passive: true });
+    window.addEventListener('resize', updateTableFade);
   }
 
   function init() {
@@ -489,7 +594,9 @@
     wirePlaceholders();
     wireCopy();
     wireLightbox();
+    wireNavOverflow();
     wireScrollSpy();
+    wireTableFade();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
